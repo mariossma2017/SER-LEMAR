@@ -70,4 +70,35 @@ document.addEventListener("click",ev=>{let btn=ev.target.closest("[data-go-plan]
 const oldPlanRender=planRender;planRender=function(){oldPlanRender();serMonthlyPending()};
 document.querySelector('nav button[data-tab="monthly"]').addEventListener("click",()=>setTimeout(serMonthlyPending,0));
 serMonthlyPending();
+
+async function serExecutiveReport(){
+const btn=$("print");btn.disabled=true;try{
+await serLoadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js","jspdf");
+let doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),month=Number($("viewMonth").value||$("editMonth").value||1),months=[1,2,3,4,5,6],W=210,y=0;
+const navy=[21,30,42],yellow=[245,193,25],green=[18,135,96],muted=[98,112,128];
+function fill(c){doc.setFillColor(...c)}function color(c){doc.setTextColor(...c)}
+function txt(s,x,yy,size=10,bold=false,c=navy){doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);color(c);doc.text(String(s),x,yy)}
+function rect(x,yy,w,hh,c,r=0){fill(c);r?doc.roundedRect(x,yy,w,hh,r,r,"F"):doc.rect(x,yy,w,hh,"F")}
+function wrap(s,x,maxW,size=9,lineH=5){doc.setFont("helvetica","normal");doc.setFontSize(size);let lines=doc.splitTextToSize(String(s||"—"),maxW);for(let t of lines){if(y+lineH>275)newPage();txt(t,x,y,size,false,navy);y+=lineH}}
+function newPage(){doc.addPage();y=20;rect(0,0,210,7,navy)}
+function guard(hh){if(y+hh>274)newPage()}
+rect(0,0,210,52,navy);rect(0,52,210,3,yellow);txt("SER  /  LEMAR",16,19,20,true,[255,210,0]);txt("RELATORIO EXECUTIVO DE ADERENCIA",16,30,13,true,[255,255,255]);txt("Cultura em Movimento  |  Ciclo: out/2026 a mar/2027",16,40,9,false,[221,227,234]);txt("Emissao: "+new Date().toLocaleDateString("pt-BR"),157,47,8,false,[221,227,234]);y=65;
+const metrics=months.map(m=>{let q=planSummary(m);return {...q,m}});
+const q=metrics[month-1],elapsed=metrics.slice(0,month),total=elapsed.reduce((s,x)=>s+x.total,0),ok=elapsed.reduce((s,x)=>s+x.ok,0),acc=total?Math.round(ok/total*100):0;
+const cards=[["ADERENCIA DO MES",q.percent+"%"],["ADERENCIA ACUMULADA",acc+"%"],["ACOES OK",q.ok+" / "+q.total],["PENDENTES NO MES",q.total-q.ok]];
+cards.forEach((v,i)=>{let x=15+(i%2)*92,yy=y+Math.floor(i/2)*28;rect(x,yy,88,24,[245,247,250],2);txt(v[0],x+5,yy+8,8,true,muted);txt(v[1],x+5,yy+19,16,true,navy)});y+=67;
+txt("EVOLUCAO DA ADERENCIA MENSAL",15,y,12,true);y+=8;
+const chartY=y,chartH=40,chartX=23,chartW=168;doc.setDrawColor(223,228,234);for(let v=0;v<=100;v+=25){let yy=chartY+chartH-v/100*chartH;doc.line(chartX,yy,chartX+chartW,yy)}
+let pts=metrics.map((q,i)=>[chartX+i*chartW/5,chartY+chartH-q.percent/100*chartH]);
+doc.setDrawColor(...green);doc.setLineWidth(1.1);for(let i=1;i<pts.length;i++)doc.line(...pts[i-1],...pts[i]);pts.forEach(([x,yy],i)=>{fill(green);doc.circle(x,yy,1.7,"F");txt(metrics[i].percent+"%",x-4,Math.max(chartY-2,yy-4),8,true,green);txt(label(i),x-6,chartY+chartH+7,8,false,muted)});y=chartY+chartH+17;
+txt("RESULTADO POR PILAR  |  "+label(month-1).toUpperCase(),15,y,11,true);y+=9;
+for(let p=0;p<3;p++){let v=planSummary(month,p);txt("Pilar "+(p+1)+" - "+P[p],15,y,9,true);txt(v.percent+"%  ("+v.ok+"/"+v.total+")",190,y,9,true,green);y+=4;rect(15,y,180,3,[231,235,239],1);rect(15,y,180*v.percent/100,3,green,1);y+=10}
+y+=4;guard(22);txt("PENDENCIAS DO MES  |  "+label(month-1).toUpperCase(),15,y,12,true);y+=7;
+let pending=A.filter(a=>planActive(a,month)&&!(planRecord(a,month).status==="ok"&&planRecord(a,month).evidenceConfirmed));
+if(!pending.length){txt("Nenhuma pendencia registrada neste mes.",15,y,10,false,green);y+=8}
+else for(let a of pending){let r=planRecord(a,month),status=r.status==="ok"?"Aguardando validacao":r.status==="nao"?"Nao OK":r.status==="na"?"Nao aplicavel":"Pendente";guard(27);rect(15,y-4,180,0.7,[225,230,235]);y+=4;txt(a.id+"  |  "+status,15,y,9,true,[164,98,27]);y+=6;doc.setFont("helvetica","bold");doc.setFontSize(9);let lines=doc.splitTextToSize(a.title,175);for(let line of lines){guard(6);txt(line,15,y,9,true);y+=5}txt("Pilar "+(a.p+1)+"  |  Responsavel: "+(r.owner||"Nao informado"),15,y,8,false,muted);y+=6;if(r.notes){txt("Observacoes:",15,y,8,true,muted);y+=4;wrap(r.notes,15,176,8,4.5)}y+=4}
+let pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);rect(0,285,210,12,navy);txt("SSMA  |  SER LEMAR  |  Relatorio gerencial",15,292,8,false,[255,255,255]);txt(i+" / "+pages,188,292,8,false,[255,255,255])}
+doc.save("SER-LEMAR-Relatorio-Diretoria-"+label(month-1).replace(/[^a-z0-9]/gi,"-")+".pdf");
+}catch(err){alert("Nao foi possivel gerar o relatorio: "+err.message)}finally{btn.disabled=false}}
+$("print").onclick=serExecutiveReport;
 </script></body></html>
