@@ -11,8 +11,7 @@ const A=[["P1-1","Gemba de Safety com a alta liderança",2],["P1-2","Safety como
 const months=["Outubro/2026","Novembro/2026","Dezembro/2026","Janeiro/2027","Fevereiro/2027","Março/2027"];
 const KEY="ser-lemar-simple-2026-v1";let state={};try{state=JSON.parse(localStorage.getItem(KEY))||{}}catch{}
 const oldKey="ser-lemar-v2";if(!localStorage.getItem(KEY)){try{const old=JSON.parse(localStorage.getItem(oldKey)||"{}");if(old.plan){for(const a of A){const r=old.plan[a.id+"-1"];if(r&&r.status==="ok")state[a.id]={done:true,evidence:r.evidence||a.evidence}}}}catch{}}
-for(const a of A.filter(x=>x.month===1))state[a.id]={...(state[a.id]||{}),done:true,evidence:state[a.id]?.evidence||a.evidence};
-save();
+if(!localStorage.getItem(KEY)){for(const a of A.filter(x=>x.month===1))state[a.id]={...(state[a.id]||{}),done:true,evidence:state[a.id]?.evidence||a.evidence};localStorage.setItem(KEY,JSON.stringify(state));}
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),done=a=>!!state[a.id]?.done,save=()=>localStorage.setItem(KEY,JSON.stringify(state));
 function stats(m){let aa=A.filter(a=>!m||a.month===m),ok=aa.filter(done).length;return{total:aa.length,ok,pct:aa.length?Math.round(ok/aa.length*100):0}}
 function past(a){let d=new Date(),deadline=new Date(2026,9+a.month,1);return d>=deadline&&!done(a)}
