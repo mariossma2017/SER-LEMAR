@@ -14,7 +14,7 @@ const oldKey="ser-lemar-v2";if(!localStorage.getItem(KEY)){try{const old=JSON.pa
 if(!localStorage.getItem(KEY)){for(const a of A.filter(x=>x.month===1))state[a.id]={...(state[a.id]||{}),done:true,evidence:state[a.id]?.evidence||a.evidence};localStorage.setItem(KEY,JSON.stringify(state));}
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),done=a=>!!state[a.id]?.done,save=()=>localStorage.setItem(KEY,JSON.stringify(state));
 function stats(m){let aa=A.filter(a=>!m||a.month===m),ok=aa.filter(done).length;return{total:aa.length,ok,pct:aa.length?Math.round(ok/aa.length*100):0}}
-function elapsed(a){return new Date()>=new Date(2026,9+a.month,1)}
+function elapsed(a){return new Date()>=new Date(2026,8+a.month,1)}
 function past(a){let d=new Date(),deadline=new Date(2026,9+a.month,1);return d>=deadline&&!done(a)}
 function track(p){return '<div class="track"><i style="width:'+p+'%"></i><em style="width:'+(100-p)+'%"></em></div>'}
 function monthBars(){return months.map((n,i)=>{let s=stats(i+1);return '<div class="month"><div class="between"><b>'+n+'</b><b>'+s.pct+'%</b></div>'+track(s.pct)+'<small>'+s.ok+' realizadas · '+(s.total-s.ok)+' não realizadas</small></div>'}).join("")}
